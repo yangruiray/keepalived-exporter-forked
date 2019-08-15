@@ -17,7 +17,7 @@ import (
 
 const (
 	defaultKeepalivedConf = "/etc/keepalived/keepalived.conf"
-	defaultUpdateInterval = 2
+	defaultUpdateInterval = 15
 )
 
 var (
@@ -56,7 +56,7 @@ func inspectKeepalivedVIP() bool {
 
 		currentVIP := parseKeepalivedVIP(string(std))
 		if len(currentVIP) == 0 {
-			glog.Errorf("current host lost vip")
+			// glog.Errorf("current host lost vip")
 			return false
 		}
 
@@ -74,13 +74,11 @@ func inspectKeepalivedVIP() bool {
 		}
 	}
 
-	if len(vipCheckArray) != len(IPCollection) {
-		glog.Infof("current host vip counts mismatch keepalived conf's counts")
-		return false
-	} else {
+	if len(vipCheckArray) == len(IPCollection) {
 		return true
 	}
 
+	//glog.Infof("current host vip counts mismatch keepalived conf's counts")
 	return false
 }
 
@@ -113,11 +111,39 @@ func parseKeepalivedVIP(inputContent string) []string {
 	}
 
 	if len(ipCollection) == 0 {
-		glog.Errorf("keepalived ip address is empty")
+		// glog.Errorf("keepalived ip address is empty")
 		return nil
 	}
 
 	return ipCollection
+}
+
+func inspectKeepalivedStatus() bool {
+	cmd := "systemctl is-active keepalived.service | grep -w active &2>/dev/null"
+	std, err := exec.Command("bash", "-c", cmd).Output()
+	if err != nil {
+		log.Fatalf("fail to exec command to get keepalived status, err: %v", err)
+		keepalived_status.Set(0.0)
+	}
+
+	if string(std) != "" {
+		return true
+	}
+
+	return false
+}
+
+func updateKeepalivedMetrics() {
+	go func() {
+		for {
+			if inspectKeepalivedStatus() == true {
+				keepalived_status.Set(1.0)
+			} else {
+				keepalived_status.Set(0.0)
+			}
+			time.Sleep(defaultUpdateInterval * time.Second)
+		}
+	}()
 }
 
 func updateKeepalivedVIP() {
@@ -127,29 +153,6 @@ func updateKeepalivedVIP() {
 				keepalived_vip.Set(1.0)
 			} else {
 				keepalived_vip.Set(0.0)
-			}
-		}
-	}()
-}
-
-func inspectKeepalivedStatus() string {
-	cmd := "systemctl is-active keepalived.service | grep -w active &2>/dev/null"
-	std, err := exec.Command("bash", "-c", cmd).Output()
-	if err != nil {
-		log.Fatalf("fail to exec command to get keepalived status, err: %v", err)
-		keepalived_status.Set(0.0)
-	}
-
-	return string(std)
-}
-
-func updateKeepalivedMetrics() {
-	go func() {
-		for {
-			if inspectKeepalivedStatus() == "active" {
-				keepalived_status.Set(1.0)
-			} else {
-				keepalived_status.Set(0.0)
 			}
 			time.Sleep(defaultUpdateInterval * time.Second)
 		}
@@ -164,8 +167,9 @@ func init() {
 func main() {
 	fmt.Println("start a exporter for keepalived ...")
 	flag.Parse()
-	updateKeepalivedVIP()
 	updateKeepalivedMetrics()
+	updateKeepalivedVIP()
+
 
 	http.Handle("/metrics", promhttp.Handler())
 	http.ListenAndServe(*add, nil)
