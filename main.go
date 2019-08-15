@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-        "log"
+	"log"
 	"flag"
 	"time"
 	"regexp"
@@ -127,6 +127,10 @@ func updateKeepalivedVIP() {
 				keepalived_vip.Set(1.0)
 			} else {
 				keepalived_vip.Set(0.0)
+			}
+		}
+	}()
+}
 
 func inspectKeepalivedStatus() string {
 	cmd := "systemctl is-active keepalived.service | grep -w active &2>/dev/null"
