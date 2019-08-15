@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-  "log"
+        "log"
 	"flag"
 	"time"
 	"regexp"
