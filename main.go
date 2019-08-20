@@ -85,7 +85,7 @@ func inspectKeepalivedVIP() bool {
 func readKeepalivedFile() string {
 	file, err := ioutil.ReadFile(defaultKeepalivedConf)
 	if err != nil {
-		glog.Fatalf("fail to open keepalived config on path %v, err: %v", defaultKeepalivedConf, err)
+		glog.Errorf("fail to open keepalived config on path %v, err: %v", defaultKeepalivedConf, err)
 		return ""
 	}
 
@@ -134,7 +134,7 @@ func inspectKeepalivedStatus() bool {
 }
 
 func updateKeepalivedMetrics() {
-	go func() {
+	// go func() {
 		for {
 			if inspectKeepalivedStatus() == true {
 				keepalived_status.Set(1.0)
@@ -143,11 +143,11 @@ func updateKeepalivedMetrics() {
 			}
 			time.Sleep(defaultUpdateInterval * time.Second)
 		}
-	}()
+	// }()
 }
 
 func updateKeepalivedVIP() {
-	go func() {
+	// go func() {
 		for {
 			if inspectKeepalivedVIP() == true {
 				keepalived_vip.Set(1.0)
@@ -156,7 +156,7 @@ func updateKeepalivedVIP() {
 			}
 			time.Sleep(defaultUpdateInterval * time.Second)
 		}
-	}()
+	// }()
 }
 
 func init() {
