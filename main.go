@@ -15,7 +15,6 @@ import (
 
 const (
 	defaultKeepalivedConf = "/etc/keepalived/keepalived.conf"
-	defaultUpdateInterval = 15
 )
 
 var (
@@ -161,7 +160,7 @@ func main() {
 
 	fmt.Println("start a exporter for keepalived ...")
 	flag.Parse()
-	updateKeepalivedMetrics()
+	//updateKeepalivedMetrics()
 	updateKeepalivedVIP()
 
 	http.Handle("/metrics", promhttp.Handler())
