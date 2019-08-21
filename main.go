@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"flag"
-	"time"
 	"regexp"
 	"os/exec"
 	"net/http"
@@ -34,53 +32,6 @@ var (
 		Help: "The gauge is represents keepalive vip network status",
 	})
 )
-
-func inspectKeepalivedVIP() bool {
-	var vipCheckArray []bool
-	keepalivedContent := readKeepalivedFile()
-
-	if keepalivedContent == "" {
-		glog.Fatalf("keepalived config parse failed, return with empty string")
-		return false
-	}
-
-	IPCollection := parseKeepalivedVIP(keepalivedContent)
-
-	for _, v := range IPCollection {
-		cmd := fmt.Sprintf("ip addr | grep %v &2>/dev/null", v)
-		std, err := exec.Command("bash", "-c", cmd).Output()
-		if err != nil {
-			glog.Errorf("exec command: [%v], error occurs: %v", cmd, err)
-			return false
-		}
-
-		currentVIP := parseKeepalivedVIP(string(std))
-		if len(currentVIP) == 0 {
-			// glog.Errorf("current host lost vip")
-			return false
-		}
-
-		if parseKeepalivedVIP(string(std))[0] == v {
-			vipCheckArray = append(vipCheckArray, true)
-		} else {
-			vipCheckArray = append(vipCheckArray, false)
-		}
-	}
-
-	for _, v := range vipCheckArray {
-		if v == false {
-			glog.Infof("current host lost vip")
-			return false
-		}
-	}
-
-	if len(vipCheckArray) == len(IPCollection) {
-		return true
-	}
-
-	//glog.Infof("current host vip counts mismatch keepalived conf's counts")
-	return false
-}
 
 func readKeepalivedFile() string {
 	file, err := ioutil.ReadFile(defaultKeepalivedConf)
@@ -118,12 +69,62 @@ func parseKeepalivedVIP(inputContent string) []string {
 	return ipCollection
 }
 
+func inspectKeepalivedVIP() bool {
+	var vipCheckArray []bool
+	keepalivedContent := readKeepalivedFile()
+
+	if keepalivedContent == "" {
+		glog.Fatalf("keepalived config parse failed, return with empty string")
+		return false
+	}
+
+	IPCollection := parseKeepalivedVIP(keepalivedContent)
+
+	for _, v := range IPCollection {
+		cmd := fmt.Sprintf("ip addr | grep %v &2>/dev/null", v)
+		std, err := exec.Command("bash", "-c", cmd).CombinedOutput()
+
+		if err != nil {
+			glog.Errorf("exec command: [%v], error occurs: %v", cmd, err)
+			keepalived_status.Set(0.0)
+			return false
+		}
+
+		currentVIP := parseKeepalivedVIP(string(std))
+		if len(currentVIP) == 0 {
+			// glog.Errorf("current host lost vip")
+			return false
+		}
+
+		if parseKeepalivedVIP(string(std))[0] == v {
+			vipCheckArray = append(vipCheckArray, true)
+		} else {
+			vipCheckArray = append(vipCheckArray, false)
+		}
+	}
+
+	for _, v := range vipCheckArray {
+		if v == false {
+			glog.Infof("current host lost vip")
+			return false
+		}
+	}
+
+	if len(vipCheckArray) == len(IPCollection) {
+		return true
+	}
+
+	//glog.Infof("current host vip counts mismatch keepalived conf's counts")
+	return false
+}
+
 func inspectKeepalivedStatus() bool {
 	cmd := "systemctl is-active keepalived.service | grep -w active &2>/dev/null"
-	std, err := exec.Command("bash", "-c", cmd).Output()
+	std, err := exec.Command("bash", "-c", cmd).CombinedOutput()
 	if err != nil {
-		log.Fatalf("fail to exec command to get keepalived status, err: %v", err)
+		glog.Errorf("fail to exec command to get keepalived status, err: %v", err)
 		keepalived_status.Set(0.0)
+		return false
 	}
 
 	if string(std) != "" {
@@ -134,29 +135,21 @@ func inspectKeepalivedStatus() bool {
 }
 
 func updateKeepalivedMetrics() {
-	go func() {
-		for {
-			if inspectKeepalivedStatus() == true {
-				keepalived_status.Set(1.0)
-			} else {
-				keepalived_status.Set(0.0)
-			}
-			time.Sleep(defaultUpdateInterval * time.Second)
-		}
-	}()
+	if inspectKeepalivedStatus() == true {
+		keepalived_status.Set(1.0)
+	} else {
+		keepalived_status.Set(0.0)
+	}
+	//time.Sleep(defaultUpdateInterval * time.Second)
 }
 
 func updateKeepalivedVIP() {
-	go func() {
-		for {
-			if inspectKeepalivedVIP() == true {
-				keepalived_vip.Set(1.0)
-			} else {
-				keepalived_vip.Set(0.0)
-			}
-			time.Sleep(defaultUpdateInterval * time.Second)
-		}
-	}()
+	if inspectKeepalivedVIP() == true {
+		keepalived_vip.Set(1.0)
+	} else {
+		keepalived_vip.Set(0.0)
+	}
+	//time.Sleep(defaultUpdateInterval * time.Second)
 }
 
 func init() {
@@ -165,11 +158,11 @@ func init() {
 }
 
 func main() {
+
 	fmt.Println("start a exporter for keepalived ...")
 	flag.Parse()
 	updateKeepalivedMetrics()
 	updateKeepalivedVIP()
-
 
 	http.Handle("/metrics", promhttp.Handler())
 	http.ListenAndServe(*add, nil)
