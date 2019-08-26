@@ -1,0 +1,173 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: keepalived-exporter
+  labels:
+    app: prometheus-keepalived-exporter
+    chart: prometheus-keepalived-exporter-v0.1
+    jobLabel: keepalived-exporter
+    release: prometheus-operator
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: prometheus-keepalived-exporter
+      release: prometheus-operator
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: prometheus-keepalived-exporter
+        chart: prometheus-keepalived-exporter-v0.1
+        jobLabel: keepalived-exporter
+        release: prometheus-operator
+    spec:
+      hostNetwork: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/keepalived
+                operator: "Exists"
+      containers:
+      - args:
+        image: reg.kpaas.io/kpaas/keepalived-exporter:v0.1
+        imagePullPolicy: IfNotPresent
+        name: keepalived-exporter
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /metrics
+            port: 9999
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /metrics
+            port: 9999
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        ports:
+        - containerPort: 9999
+          hostPort: 9999
+          name: metrics
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 500Mi
+          requests:
+            cpu: 500m
+            memory: 500Mi
+        volumeMounts:
+        - mountPath: /etc/keepalived
+          name: keepalived-path
+          readOnly: true
+        - mountPath: /host/proc
+          name: proc
+          readOnly: true
+      volumes:
+      - hostPath:
+          path: /etc/keepalived
+          type: DirectoryOrCreate
+        name: keepalived-path
+      - hostPath:
+          path: /proc
+          type: ""
+        name: proc
+
+---
+
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: process-exporter
+  labels:
+    app: prometheus-process-exporter
+    chart: prometheus-process-exporter-v0.1
+    jobLabel: process-exporter
+    release: prometheus-operator
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: prometheus-process-exporter
+      release: prometheus-operator
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: prometheus-process-exporter
+        chart: prometheus-process-exporter-v0.1
+        jobLabel: process-exporter
+        release: prometheus-operator
+    spec:
+      hostNetwork: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/keepalived
+                operator: "Exists"
+      containers:
+      - args:
+        image: reg.kpaas.io/kpaas/process-exporter:v0.1
+        imagePullPolicy: IfNotPresent
+        name: process-exporter
+        command:
+        - process-exporter
+        - -web.listen-address=0.0.0.0:9998
+        - -procfs=/host/proc
+        - -procnames=keepalived
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: "/metrics"
+            port: 9998
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: "/metrics"
+            port: 9998
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        ports:
+        - containerPort: 9998
+          hostPort: 9998
+          name: metrics
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 500Mi
+          requests:
+            cpu: 500m
+            memory: 500Mi
+        volumeMounts:
+        - mountPath: /host/proc
+          name: proc
+          readOnly: true
+      volumes:
+      - hostPath:
+          path: /proc
+          type: ""
+        name: proc

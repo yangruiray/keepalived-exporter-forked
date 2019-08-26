@@ -152,7 +152,7 @@ func updateKeepalivedVIP() {
 }
 
 func init() {
-	prometheus.MustRegister(keepalived_status)
+	// prometheus.MustRegister(keepalived_status)
 	prometheus.MustRegister(keepalived_vip)
 }
 
