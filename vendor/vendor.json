@@ -21,6 +21,24 @@
 			"revisionTime": "2019-08-05T18:00:45Z"
 		},
 		{
+			"checksumSHA1": "hAdWPs3JKbeam+vv1zxFmRsuYtc=",
+			"path": "github.com/keepalived-exporter/cmd/keepalived-exporter",
+			"revision": "6634a27dc10d241b4506087f0b6a9b8d51fba802",
+			"revisionTime": "2019-08-27T06:09:51Z"
+		},
+		{
+			"checksumSHA1": "n9ts+al0wqXmnvlNYxEEPpcbH8Q=",
+			"path": "github.com/keepalived-exporter/pkg",
+			"revision": "6634a27dc10d241b4506087f0b6a9b8d51fba802",
+			"revisionTime": "2019-08-27T06:09:51Z"
+		},
+		{
+			"checksumSHA1": "6ZO/9pv7AevPrqqLMKfngwbatvY=",
+			"path": "github.com/keepalived-exporter/pkg/testing",
+			"revision": "6634a27dc10d241b4506087f0b6a9b8d51fba802",
+			"revisionTime": "2019-08-27T06:09:51Z"
+		},
+		{
 			"checksumSHA1": "bKMZjd2wPw13VwoE7mBeSv5djFA=",
 			"path": "github.com/matttproud/golang_protobuf_extensions/pbutil",
 			"revision": "c182affec369e30f25d3eb8cd8a478dee585ae7d",

@@ -31,7 +31,7 @@ ENV PORT 9999
 EXPOSE $PORT
 
 # build 
-RUN GOOS=linux GOARCH=amd64 go build -o keepalived-exporter main.go && cp keepalived-exporter /usr/local/bin/ && chmod +x /usr/local/bin/keepalived-exporter
+RUN GOOS=linux GOARCH=amd64 go build -o /go/src/keepalived-exporter/cmd/keepalived-exporter/keepalived-exporter /go/src/keepalived-exporter/cmd/keepalived-exporter/main.go && cp /go/src/keepalived-exporter/cmd/keepalived-exporter/keepalived-exporter /usr/local/bin/ && chmod +x /usr/local/bin/keepalived-exporter
 
 # Run container command 
 ENTRYPOINT ["keepalived-exporter"]
