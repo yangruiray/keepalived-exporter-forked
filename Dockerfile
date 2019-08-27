@@ -1,9 +1,9 @@
 # Download pkg env
-FROM centos:7.6.1810
-RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \
-  && yum update -y \
-  && yum install vim -y \
-  && rm -rf /usr/local/src/*
+#FROM centos:7.6.1810
+#RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7 \
+#  && yum update -y \
+#  && yum install vim -y \
+#  && rm -rf /usr/local/src/*
 
 FROM golang:1.12
 
