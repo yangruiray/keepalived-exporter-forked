@@ -1,29 +1,60 @@
 package main
 
 import (
+	"os"
 	"fmt"
 	"flag"
 	"net/http"
 
+	"github.com/prometheus/common/log"
 	"github.com/keepalived-exporter/pkg"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var (
-	add = flag.String("listen-address", ":9999", "The address to listen on for HTTP requests.")
+const (
+	metricsPath = "/metrics"
 )
 
+var (
+	listenPort    int
+)
+
+// build metrics server for http request
+func metricsServer(reg *prometheus.Registry) {
+	gatherers := prometheus.Gatherers{
+		prometheus.DefaultGatherer,
+		reg,
+	}
+
+	h := promhttp.HandlerFor(
+		gatherers,
+		promhttp.HandlerOpts{
+			ErrorLog:       log.NewErrorLogger(),
+			ErrorHandling:  promhttp.ContinueOnError,
+		})
+	http.HandleFunc(metricsPath, func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
+	})
+	log.Infof("Start keepalived-exporter server at port: 9999")
+	if err := http.ListenAndServe(fmt.Sprintf(":%v", listenPort), nil); err != nil {
+		log.Errorf("Error occurs on: %v", err)
+		os.Exit(1)
+	}
+}
+
 func init() {
-	prometheus.MustRegister(pkg.Keepalived_vip)
+	flag.IntVar(&listenPort, "port", 9999, "expose listen port")
 }
 
 func main() {
-	fmt.Println("start a exporter for keepalived ...")
+	flag.Set("logtostderr", "true")
 	flag.Parse()
 
-	pkg.UpdateKeepalivedVIP()
+	// new a metric and register registry
+	newMetrics := pkg.NewKeepalivedMetrics()
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(newMetrics)
 
-	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(*add, nil)
+	metricsServer(reg)
 }

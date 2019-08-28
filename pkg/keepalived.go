@@ -1,17 +1,75 @@
 package pkg
 
 import (
-	"github.com/golang/glog"
-	"io/ioutil"
-	"regexp"
 	"fmt"
+	"regexp"
 	"os/exec"
+	"strings"
+	"io/ioutil"
+
+	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
 	defaultKeepalivedConf = "/etc/keepalived/keepalived.conf"
 )
 
+// Exec to get state of keepalived
+func (m *KeepalivedMetrics) GetState() (keepalivedVip map[string]int) {
+	gaugeValue := updateKeepalivedVIP()
+	hostName := accquireHostname()
+
+	keepalivedVip = map[string]int {
+		fmt.Sprintf("%v", hostName): gaugeValue,
+	}
+
+	return
+}
+
+// Collect func is for write gauge value to channel
+func (m * KeepalivedMetrics) Collect(ch chan <- prometheus.Metric) {
+	keepalived_vip := m.GetState()
+
+	for host, values := range keepalived_vip {
+		ch <- prometheus.MustNewConstMetric(
+			m.Keepalived_vip,
+			prometheus.GaugeValue,
+			float64(values),
+			host,
+		)
+	}
+}
+
+// Write describe to channel
+func (m *KeepalivedMetrics) Describe (ch chan <- *prometheus.Desc) {
+	ch <- m.Keepalived_vip
+}
+
+func NewKeepalivedMetrics() *KeepalivedMetrics {
+	return &KeepalivedMetrics{
+		Keepalived_vip:    prometheus.NewDesc(
+			"keepalived_vip_ready",
+			"vip on current node",
+			[]string{"host"},
+			nil,
+		),
+	}
+}
+
+// accquire current hostname
+func accquireHostname() string {
+	std, err := exec.Command("bash", "-c", "hostname -f").CombinedOutput()
+	if err != nil {
+		glog.Errorf("failed to get current node hostname")
+		return ""
+	}
+
+	hostname := strings.TrimSuffix(string(std), "\n")
+	return hostname
+}
+
+// read keepalived config and return context
 func readKeepalivedFile() string {
 	file, err := ioutil.ReadFile(defaultKeepalivedConf)
 	if err != nil {
@@ -22,6 +80,7 @@ func readKeepalivedFile() string {
 	return string(file)
 }
 
+// parse keepalived config and return ip collection of keepalived VIP
 func parseKeepalivedVIP(inputContent string) []string {
 	var ipCollection []string
 	vipMap := make(map[string]bool)
@@ -48,9 +107,11 @@ func parseKeepalivedVIP(inputContent string) []string {
 	return ipCollection
 }
 
+// inspect current node whether vip is on current machine
 func inspectKeepalivedVIP() bool {
 	var vipCheckArray []bool
 	keepalivedContent := readKeepalivedFile()
+	currentHost := accquireHostname()
 
 	if keepalivedContent == "" {
 		glog.Fatalf("keepalived config parse failed, return with empty string")
@@ -65,13 +126,12 @@ func inspectKeepalivedVIP() bool {
 
 		if err != nil {
 			glog.Errorf("exec command: [%v], error occurs: %v", cmd, err)
-			Keepalived_status.Set(0.0)
 			return false
 		}
 
 		currentVIP := parseKeepalivedVIP(string(std))
 		if len(currentVIP) == 0 {
-			// glog.Errorf("current host lost vip")
+			glog.Errorf("current host: \"%v\" lost vip", currentHost)
 			return false
 		}
 
@@ -97,36 +157,10 @@ func inspectKeepalivedVIP() bool {
 	return false
 }
 
-func inspectKeepalivedStatus() bool {
-	cmd := "systemctl is-active keepalived.service | grep -w active &2>/dev/null"
-	std, err := exec.Command("bash", "-c", cmd).CombinedOutput()
-	if err != nil {
-		glog.Errorf("fail to exec command to get keepalived status, err: %v", err)
-		Keepalived_status.Set(0.0)
-		return false
-	}
-
-	if string(std) != "" {
-		return true
-	}
-
-	return false
-}
-
-func updateKeepalivedMetrics() {
-	if inspectKeepalivedStatus() == true {
-		Keepalived_status.Set(1.0)
-	} else {
-		Keepalived_status.Set(0.0)
-	}
-	//time.Sleep(defaultUpdateInterval * time.Second)
-}
-
-func UpdateKeepalivedVIP() {
+// Exec to inspect current node vip state
+func updateKeepalivedVIP() int {
 	if inspectKeepalivedVIP() == true {
-		Keepalived_vip.Set(1.0)
-	} else {
-		Keepalived_vip.Set(0.0)
+		return 1
 	}
-	//time.Sleep(defaultUpdateInterval * time.Second)
+	return 0
 }
