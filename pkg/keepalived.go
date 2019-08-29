@@ -2,10 +2,10 @@ package pkg
 
 import (
 	"fmt"
-	"regexp"
-	"os/exec"
-	"strings"
 	"io/ioutil"
+	"os/exec"
+	"regexp"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
@@ -20,7 +20,7 @@ func (m *KeepalivedMetrics) GetState() (keepalivedVip map[string]int) {
 	gaugeValue := updateKeepalivedVIP()
 	hostName := accquireHostname()
 
-	keepalivedVip = map[string]int {
+	keepalivedVip = map[string]int{
 		fmt.Sprintf("%v", hostName): gaugeValue,
 	}
 
@@ -28,7 +28,7 @@ func (m *KeepalivedMetrics) GetState() (keepalivedVip map[string]int) {
 }
 
 // Collect func is for write gauge value to channel
-func (m * KeepalivedMetrics) Collect(ch chan <- prometheus.Metric) {
+func (m *KeepalivedMetrics) Collect(ch chan<- prometheus.Metric) {
 	keepalived_vip := m.GetState()
 
 	for host, values := range keepalived_vip {
@@ -42,13 +42,13 @@ func (m * KeepalivedMetrics) Collect(ch chan <- prometheus.Metric) {
 }
 
 // Write describe to channel
-func (m *KeepalivedMetrics) Describe (ch chan <- *prometheus.Desc) {
+func (m *KeepalivedMetrics) Describe(ch chan<- *prometheus.Desc) {
 	ch <- m.Keepalived_vip
 }
 
 func NewKeepalivedMetrics() *KeepalivedMetrics {
 	return &KeepalivedMetrics{
-		Keepalived_vip:    prometheus.NewDesc(
+		Keepalived_vip: prometheus.NewDesc(
 			"keepalived_vip_ready",
 			"vip on current node",
 			[]string{"host"},

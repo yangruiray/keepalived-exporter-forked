@@ -1,15 +1,15 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"flag"
+	"fmt"
 	"net/http"
+	"os"
 
-	"github.com/prometheus/common/log"
 	"github.com/keepalived-exporter/pkg"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/prometheus/common/log"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	listenPort    int
+	listenPort int
 )
 
 // build metrics server for http request
@@ -30,8 +30,8 @@ func metricsServer(reg *prometheus.Registry) {
 	h := promhttp.HandlerFor(
 		gatherers,
 		promhttp.HandlerOpts{
-			ErrorLog:       log.NewErrorLogger(),
-			ErrorHandling:  promhttp.ContinueOnError,
+			ErrorLog:      log.NewErrorLogger(),
+			ErrorHandling: promhttp.ContinueOnError,
 		})
 	http.HandleFunc(metricsPath, func(w http.ResponseWriter, r *http.Request) {
 		h.ServeHTTP(w, r)
