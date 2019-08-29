@@ -59,7 +59,7 @@ func NewKeepalivedMetrics() *KeepalivedMetrics {
 
 // accquire current hostname
 func accquireHostname() string {
-	std, err := exec.Command("/bin/bash", "-c", "hostname", "-f").CombinedOutput()
+	std, err := exec.Command("bash", "-c", "hostname", "-f").CombinedOutput()
 	if err != nil {
 		glog.Errorf("failed to get current node hostname")
 		return ""
