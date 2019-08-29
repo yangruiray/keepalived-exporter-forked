@@ -4,11 +4,9 @@
 
 暴露数据格式为prometheus metrics
 
-# 使用方式
+# usage
 编译
-cd go/src/github.com/keepalived-exporter/cmd/keepalived-exporter && go build main.go
+go build go/src/github.com/keepalived-exporter/cmd/keepalived-exporter/main.go
 
-运行
-./main --port <9999>
-
-
+使用
+./main
