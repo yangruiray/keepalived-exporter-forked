@@ -26,5 +26,5 @@ EXPOSE $PORT
 RUN GOOS=linux GOARCH=amd64 go build -o /go/src/github.com/keepalived-exporter/cmd/keepalived-exporter/keepalived-exporter /go/src/github.com/keepalived-exporter/cmd/keepalived-exporter/main.go && cp /go/src/github.com/keepalived-exporter/cmd/keepalived-exporter/keepalived-exporter /usr/local/bin/ && chmod +x /usr/local/bin/keepalived-exporter
 
 # Run container command 
-ENTRYPOINT ["/go/src/github.com/keepalived-exporter/cmd/keepalived-exporter/keepalived-exporter"]
+ENTRYPOINT ["/usr/local/bin/keepalived-exporter"]
 
